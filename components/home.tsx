@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
-import Image from "next/image";
 import {
   motion,
   useMotionValue,
@@ -12,7 +11,8 @@ import {
 } from "motion/react";
 import BlockStack from "./block-stack";
 import { FiArrowDown, FiArrowUpRight, FiMail } from "./icons";
-import { PROJECTS, type Project } from "./projects";
+import ProjectSwipe from "./project-swipe";
+import { PROJECTS } from "./projects";
 import { scrollToId } from "./smooth-scroll";
 
 const EASE = [0.22, 0.61, 0.36, 1] as const;
@@ -198,131 +198,6 @@ const SERVICES = [
     highlight: false,
   },
 ];
-
-/* ---------- Work ---------- */
-
-function hostOf(url: string) {
-  try {
-    return new URL(url).host.replace(/^www\./, "");
-  } catch {
-    return "";
-  }
-}
-
-function ProjectCard({ project, index, isMobile }: { project: Project; index: number; isMobile: boolean }) {
-  const live = !project.placeholder && project.url;
-  const host = live ? hostOf(project.url) : "your-project.com";
-
-  const body = (
-    <>
-      {/* Browser frame */}
-      <div className="relative m-3 mb-0 rounded-[1.4rem] overflow-hidden border border-white/8 bg-zinc-900/60">
-        <div className="flex items-center gap-3 px-4 h-10 border-b border-white/6 bg-white/3">
-          <div className="flex gap-1.5" aria-hidden="true">
-            <span className="w-2.5 h-2.5 rounded-full bg-white/12" />
-            <span className="w-2.5 h-2.5 rounded-full bg-white/12" />
-            <span className="w-2.5 h-2.5 rounded-full bg-white/12" />
-          </div>
-          <span className="flex-1 max-w-[260px] mx-auto truncate text-center text-[11px] font-medium text-zinc-500 bg-white/4 border border-white/6 rounded-md px-3 py-1">
-            {host}
-          </span>
-          <span className="w-[42px]" aria-hidden="true" />
-        </div>
-        <div className="relative h-[220px] md:h-[300px] overflow-hidden">
-          {project.image ? (
-            <Image
-              src={project.image}
-              alt={`${project.name} website`}
-              fill
-              sizes={project.span === "wide" ? "(min-width: 768px) 66vw, 100vw" : "(min-width: 768px) 33vw, 100vw"}
-              className="object-cover object-top transition-transform duration-700 ease-[cubic-bezier(0.22,0.61,0.36,1)] md:group-hover:scale-[1.03]"
-            />
-          ) : (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-center">
-              <div
-                className="absolute inset-0 opacity-[0.07]"
-                style={{
-                  backgroundImage:
-                    "linear-gradient(#7370FF 1px, transparent 1px), linear-gradient(90deg, #7370FF 1px, transparent 1px)",
-                  backgroundSize: "32px 32px",
-                }}
-                aria-hidden="true"
-              />
-              <span className="relative text-[11px] font-bold tracking-[0.18em] uppercase text-[#9C99FF]">
-                Placeholder
-              </span>
-              <span className="relative text-sm text-zinc-400">Project screenshot goes here</span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Copy */}
-      <div className="relative z-10 flex flex-1 flex-col p-7 md:p-9">
-        <div className="flex items-start justify-between gap-4 mb-3">
-          <h3 className="text-xl md:text-2xl font-bold text-white tracking-[-0.01em]">{project.name}</h3>
-          <div
-            className={cn(
-              "shrink-0 w-10 h-10 rounded-full border flex items-center justify-center transition-all duration-400",
-              live
-                ? "border-white/10 text-white/40 group-hover:border-[#7370FF]/40 group-hover:text-white group-hover:bg-[#7370FF]/15"
-                : "border-white/8 text-white/20",
-            )}
-            aria-hidden="true"
-          >
-            <FiArrowUpRight size={18} className="group-hover:rotate-45 transition-transform duration-400" />
-          </div>
-        </div>
-        <p className="text-zinc-400 text-[14px] md:text-[15px] leading-relaxed mb-6 max-w-[60ch]">
-          {project.description}
-        </p>
-        <div className="mt-auto flex flex-wrap gap-2">
-          {project.tags.map((tag) => (
-            <span
-              key={tag}
-              className="text-[11px] font-semibold px-3 py-1.5 rounded-md border bg-white/3 border-white/6 text-white/50 transition-colors duration-400 group-hover:border-white/12 group-hover:text-white/70"
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
-      </div>
-    </>
-  );
-
-  const className = cn(
-    "group relative flex flex-col rounded-[2rem] border overflow-hidden",
-    "transition-[transform,border-color,background-color,box-shadow] duration-300",
-    "bg-white/2 border-white/6",
-    live && "md:hover:-translate-y-1 hover:bg-white/4 hover:border-[#7370FF]/30 hover:shadow-[0_12px_40px_rgba(115,112,255,0.12)]",
-    !live && "border-dashed",
-    project.span === "wide" ? "md:col-span-2" : "md:col-span-1",
-  );
-
-  const motionProps = {
-    initial: isMobile ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 },
-    whileInView: { opacity: 1, y: 0 },
-    viewport: { once: true, margin: isMobile ? "50px" : "-40px" },
-    transition: { duration: isMobile ? 0 : 0.6, delay: isMobile ? 0 : 0.08 * index },
-  };
-
-  return live ? (
-    <motion.a
-      {...motionProps}
-      href={project.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className={className}
-      aria-label={`${project.name} (opens in a new tab)`}
-    >
-      {body}
-    </motion.a>
-  ) : (
-    <motion.div {...motionProps} className={className}>
-      {body}
-    </motion.div>
-  );
-}
 
 /* ---------- Sticky-stack height helper ---------- */
 
@@ -614,7 +489,7 @@ export default function Home({ year }: { year: number }) {
       <section
         id="work"
         ref={workRef}
-        className="relative md:sticky z-30 bg-zinc-950 rounded-t-[2.5rem] overflow-hidden shadow-[0_-8px_40px_rgba(0,0,0,0.5)] md:top-[var(--work-top)]"
+        className="relative md:sticky z-30 bg-zinc-950 rounded-t-[2.5rem] overflow-clip shadow-[0_-8px_40px_rgba(0,0,0,0.5)] md:top-[var(--work-top)]"
         style={{ "--work-top": stickTop(workH, "min(0px, calc(100svh - 100%))") } as CSSProperties}
       >
         <div className="hidden md:block absolute top-0 left-1/4 w-[500px] h-[300px] bg-[#7370FF]/8 blur-[130px] rounded-full pointer-events-none" />
@@ -634,10 +509,8 @@ export default function Home({ year }: { year: number }) {
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 relative z-10">
-            {PROJECTS.map((project, i) => (
-              <ProjectCard key={i} project={project} index={i} isMobile={isMobile} />
-            ))}
+          <div className="relative z-10">
+            <ProjectSwipe projects={PROJECTS} />
           </div>
         </div>
       </section>

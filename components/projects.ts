@@ -1,54 +1,48 @@
 /**
- * Selected Work — edit this list to add real projects.
+ * Selected Work — edit this list to add or change projects.
  *
  * For each project:
- *  - url:   live site link (leave "" while it's a placeholder)
- *  - image: screenshot path in /public, e.g. "/projects/acme.jpg" (1600×1000 works well)
- *  - span:  "wide" takes two columns on desktop, "narrow" takes one
+ *  - url:   live site link
+ *  - image: screenshot path in /public, e.g. "/projects/acme.jpg" (4:3, e.g. 1800×1350, works best)
  *
- * Entries with `placeholder: true` render as clearly marked empty slots.
+ * Projects show as big cards in this order. On desktop they start as a stacked
+ * deck and open one by one as the visitor scrolls.
  */
 export type Project = {
   name: string;
+  category: string;
   description: string;
   url: string;
   image?: string;
   tags: string[];
-  span: "wide" | "narrow";
-  placeholder?: boolean;
 };
 
 export const PROJECTS: Project[] = [
   {
-    name: "Project name",
-    description: "One-line description of what we built and the result it delivered.",
-    url: "",
-    tags: ["Next.js", "AI", "AWS"],
-    span: "wide",
-    placeholder: true,
+    name: "Shiftly AI",
+    category: "Staff scheduling SaaS",
+    description:
+      "Plan staff rosters, manage shift checklists, stock orders and compliance logs, and track hours for your café, bar or shop. Ask the built-in AI Assistant.",
+    url: "https://www.joinshiftly.com",
+    image: "/projects/shiftly-ai.jpg",
+    tags: ["Next.js", "AI Assistant", "SaaS", "Scheduling"],
   },
   {
-    name: "Project name",
-    description: "One-line description of what we built and the result it delivered.",
-    url: "",
-    tags: ["Dashboard", "Automation"],
-    span: "narrow",
-    placeholder: true,
+    name: "RGS Market",
+    category: "Gaming marketplace",
+    description:
+      "Bangladesh's marketplace for buying and selling game accounts, diamonds and top-ups, with bKash and Nagad payments and escrow protection.",
+    url: "https://rgsmarket.com",
+    image: "/projects/rgs-market.jpg",
+    tags: ["Next.js", "Supabase", "Marketplace", "Escrow", "bKash / Nagad"],
   },
   {
-    name: "Project name",
-    description: "One-line description of what we built and the result it delivered.",
-    url: "",
-    tags: ["RAG", "LLMs"],
-    span: "narrow",
-    placeholder: true,
-  },
-  {
-    name: "Project name",
-    description: "One-line description of what we built and the result it delivered.",
-    url: "",
-    tags: ["SaaS", "Integrations", "Data"],
-    span: "wide",
-    placeholder: true,
+    name: "CHT Vanguard",
+    category: "News portal",
+    description:
+      "A Bangla news portal covering Rangamati, Khagrachari and Bandarban in the Chittagong Hill Tracts, alongside national and international news.",
+    url: "https://www.chtvanguard.com",
+    image: "/projects/cht-vanguard.jpg",
+    tags: ["Next.js", "News Portal", "Bangla"],
   },
 ];
