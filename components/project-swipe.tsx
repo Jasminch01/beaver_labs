@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type ReactNode,
+} from "react";
 import Image from "next/image";
 import {
   AnimatePresence,
@@ -53,7 +60,12 @@ function hostOf(url: string) {
   }
 }
 
-type Command = { id: number; card: number; kind: "throw" | "enter"; dir: 1 | -1 };
+type Command = {
+  id: number;
+  card: number;
+  kind: "throw" | "enter";
+  dir: 1 | -1;
+};
 
 /* ---------- One card in the pile ---------- */
 
@@ -64,7 +76,7 @@ function PileCard({
   total,
   command,
   reduce,
-  spread,
+  mobile,
   onThrowStart,
   onThrown,
 }: {
@@ -74,7 +86,7 @@ function PileCard({
   total: number;
   command: Command | null;
   reduce: boolean;
-  spread: number;
+  mobile: boolean;
   onThrowStart: () => void;
   onThrown: (dir: 1 | -1) => void;
 }) {
@@ -90,7 +102,11 @@ function PileCard({
     if (busy.current) return;
     busy.current = true;
     onThrowStart();
-    if (!reduce) await animate(x, dir * distance(), { duration: 0.28, ease: [0.32, 0, 0.67, 0] });
+    if (!reduce)
+      await animate(x, dir * distance(), {
+        duration: 0.28,
+        ease: [0.32, 0, 0.67, 0],
+      });
     onThrown(dir);
     // Now at the back of the pile: slide home behind the others.
     if (reduce) x.jump(0);
@@ -111,61 +127,162 @@ function PileCard({
   }, [command]);
 
   const side = depth % 2 === 1 ? -1 : 1;
+  // Mobile: same straight stack as the "What We Build" cards (edges peek out below).
+  // Desktop: a loose, tilted pile.
   const pose = isTop
     ? { rotate: 0, x: 0, y: 0, scale: 1 }
-    : {
-        rotate: TILTS[index % TILTS.length] * spread,
-        x: side * (16 + depth * 12) * spread,
-        y: depth * 10,
-        scale: 1 - depth * 0.05,
-      };
+    : mobile
+      ? {
+          rotate: 0,
+          x: 0,
+          y: Math.min(depth, 2.5) * 12,
+          scale: 1 - Math.min(depth, 2.5) * 0.05,
+        }
+      : {
+          rotate: TILTS[index % TILTS.length],
+          x: side * (16 + depth * 12),
+          y: depth * 10,
+          scale: 1 - depth * 0.05,
+        };
 
   return (
     <motion.div
       className="absolute inset-0"
-      style={{ zIndex: total - depth }}
+      style={{
+        zIndex: total - depth,
+        transformOrigin: mobile ? "50% 100%" : "50% 50%",
+      }}
       initial={false}
       animate={{ ...pose, opacity: depth < VISIBLE ? 1 : 0 }}
-      transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 300, damping: 30 }}
+      transition={
+        reduce
+          ? { duration: 0 }
+          : { type: "spring", stiffness: 300, damping: 30 }
+      }
       aria-hidden={!isTop}
     >
-      <motion.div ref={ref} className="h-full w-full" style={{ x, rotate: throwRotate }}>
-        <div className="flex h-full w-full flex-col rounded-[1.6rem] border border-white/10 bg-[#0e0e14] p-2.5 shadow-[0_28px_60px_-14px_rgba(0,0,0,0.85)] select-none">
-          <div className="flex h-full flex-col overflow-hidden rounded-[1.2rem] border border-white/8 bg-zinc-900">
-            <div className="flex h-9 shrink-0 items-center gap-3 border-b border-white/6 bg-white/3 px-4">
-              <div className="flex gap-1.5" aria-hidden="true">
-                <span className="h-2.5 w-2.5 rounded-full bg-white/12" />
-                <span className="h-2.5 w-2.5 rounded-full bg-white/12" />
-                <span className="h-2.5 w-2.5 rounded-full bg-white/12" />
+      <motion.div
+        ref={ref}
+        className="h-full w-full"
+        style={{ x, rotate: throwRotate }}
+      >
+        {mobile ? (
+          <MobileCard
+            project={project}
+            index={index}
+            total={total}
+            isTop={isTop}
+          />
+        ) : (
+          <div className="flex h-full w-full flex-col rounded-[1.6rem] border border-white/10 bg-[#0e0e14] p-2.5 shadow-[0_28px_60px_-14px_rgba(0,0,0,0.85)] select-none">
+            <div className="flex h-full flex-col overflow-hidden rounded-[1.2rem] border border-white/8 bg-zinc-900">
+              <div className="flex h-9 shrink-0 items-center gap-3 border-b border-white/6 bg-white/3 px-4">
+                <div className="flex gap-1.5" aria-hidden="true">
+                  <span className="h-2.5 w-2.5 rounded-full bg-white/12" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-white/12" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-white/12" />
+                </div>
+                <span className="mx-auto max-w-[240px] flex-1 truncate rounded-md border border-white/6 bg-white/4 px-3 py-0.5 text-center text-[11px] font-medium text-zinc-500">
+                  {hostOf(project.url)}
+                </span>
+                <span className="w-[42px]" aria-hidden="true" />
               </div>
-              <span className="mx-auto max-w-[240px] flex-1 truncate rounded-md border border-white/6 bg-white/4 px-3 py-0.5 text-center text-[11px] font-medium text-zinc-500">
-                {hostOf(project.url)}
-              </span>
-              <span className="w-[42px]" aria-hidden="true" />
-            </div>
-            <div className="relative flex-1">
-              {project.image && (
-                <Image
-                  src={project.image}
-                  alt={isTop ? `${project.name} homepage` : ""}
-                  fill
-                  draggable={false}
-                  priority={index === 0}
-                  sizes="(min-width: 768px) 46vw, 92vw"
-                  className="pointer-events-none object-cover object-top"
-                />
-              )}
+              <div className="relative flex-1">
+                {project.image && (
+                  <Image
+                    src={project.image}
+                    alt={isTop ? `${project.name} homepage` : ""}
+                    fill
+                    draggable={false}
+                    priority={index === 0}
+                    sizes="(min-width: 768px) 46vw, 92vw"
+                    className="pointer-events-none object-cover object-top"
+                  />
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        )}
+        {mobile && depth > 0 && (
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 rounded-[1.75rem] bg-[#06060a]"
+            style={{ opacity: Math.min(depth, 2) * 0.32 }}
+          />
+        )}
       </motion.div>
     </motion.div>
   );
 }
 
+/* ---------- Mobile card (matches the "What We Build" service cards) ---------- */
+
+function MobileCard({
+  project,
+  index,
+  total,
+  isTop,
+}: {
+  project: Project;
+  index: number;
+  total: number;
+  isTop: boolean;
+}) {
+  return (
+    <div className="relative flex h-full w-full flex-col overflow-hidden rounded-[1.75rem] border border-white/8 bg-[#101016] p-3 shadow-[0_-6px_24px_rgba(0,0,0,0.45)] select-none">
+      <div className="relative min-h-0 flex-1 overflow-hidden rounded-[1.1rem] border border-white/8 bg-zinc-900">
+        {project.image && (
+          <Image
+            src={project.image}
+            alt={isTop ? `${project.name} homepage` : ""}
+            fill
+            draggable={false}
+            priority={index === 0}
+            sizes="92vw"
+            className="pointer-events-none object-cover object-top"
+          />
+        )}
+      </div>
+      <div className="shrink-0 px-3 pt-4 pb-1.5 text-left">
+        <div className="flex items-baseline justify-between gap-3">
+          <h3 className="text-[1.25rem] font-bold leading-snug tracking-[-0.01em] text-white">
+            {project.name}
+          </h3>
+          <span className="shrink-0 text-xs font-bold tabular-nums text-zinc-500">
+            <span className="text-[#9C99FF]">{pad(index + 1)}</span> / {pad(total)}
+          </span>
+        </div>
+        <p className="mt-0.5 text-sm font-medium text-[#9C99FF]">{project.category}</p>
+        <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-zinc-400 [@media(max-height:760px)]:hidden">
+          {project.description}
+        </p>
+        {/* One row of tags, styled like the service cards; extra tags drop off rather than wrap. */}
+        <ul className="mt-3 flex h-[1.625rem] flex-wrap gap-1.5 overflow-hidden" aria-label="Tags">
+          {project.tags.map((tag) => (
+            <li
+              key={tag}
+              className="rounded-md border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-semibold leading-none text-zinc-300"
+            >
+              {tag}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
 /* ---------- Arrow button ---------- */
 
-function NavButton({ dir, label, onClick }: { dir: 1 | -1; label: string; onClick: () => void }) {
+function NavButton({
+  dir,
+  label,
+  onClick,
+}: {
+  dir: 1 | -1;
+  label: string;
+  onClick: () => void;
+}) {
   return (
     <button
       type="button"
@@ -194,7 +311,13 @@ function NavButton({ dir, label, onClick }: { dir: 1 | -1; label: string; onClic
 
 /* ---------- Public component ---------- */
 
-export default function ProjectSwipe({ projects, header }: { projects: Project[]; header?: ReactNode }) {
+export default function ProjectSwipe({
+  projects,
+  header,
+}: {
+  projects: Project[];
+  header?: ReactNode;
+}) {
   const reduce = useReducedMotion() ?? false;
   const n = projects.length;
   const [order, setOrder] = useState(() => projects.map((_, i) => i));
@@ -218,7 +341,12 @@ export default function ProjectSwipe({ projects, header }: { projects: Project[]
     const el = stickyRef.current;
     if (!el || mobile || !scrollMode) return;
     const update = () =>
-      setStickTopPx(Math.max(112, Math.round((window.innerHeight - el.offsetHeight) / 2 + 32)));
+      setStickTopPx(
+        Math.max(
+          112,
+          Math.round((window.innerHeight - el.offsetHeight) / 2 + 32),
+        ),
+      );
     update();
     const ro = new ResizeObserver(update);
     ro.observe(el);
@@ -241,7 +369,12 @@ export default function ProjectSwipe({ projects, header }: { projects: Project[]
 
   const next = () => {
     busy.current = true;
-    setCommand({ id: ++seq.current, card: orderRef.current[0], kind: "throw", dir: -1 });
+    setCommand({
+      id: ++seq.current,
+      card: orderRef.current[0],
+      kind: "throw",
+      dir: -1,
+    });
   };
 
   const previous = () => {
@@ -251,10 +384,13 @@ export default function ProjectSwipe({ projects, header }: { projects: Project[]
     orderRef.current = rotate(o, -1);
     setOrder(orderRef.current);
     setCommand({ id: ++seq.current, card: last, kind: "enter", dir: -1 });
-    window.setTimeout(() => {
-      busy.current = false;
-      pump();
-    }, reduce ? 0 : 260);
+    window.setTimeout(
+      () => {
+        busy.current = false;
+        pump();
+      },
+      reduce ? 0 : 260,
+    );
   };
 
   // Play queued scroll steps one card at a time.
@@ -281,7 +417,10 @@ export default function ProjectSwipe({ projects, header }: { projects: Project[]
   const { input, output } = keyframes(n);
   const stickyRef = useRef<HTMLDivElement>(null);
   const [stickTopPx, setStickTopPx] = useState(112);
-  const { scrollYProgress } = useScroll({ target: trackRef, offset: ["start start", "end end"] });
+  const { scrollYProgress } = useScroll({
+    target: trackRef,
+    offset: ["start start", "end end"],
+  });
   const scrollStep = useTransform(scrollYProgress, input, output);
   const lastStep = useRef(0);
 
@@ -295,12 +434,15 @@ export default function ProjectSwipe({ projects, header }: { projects: Project[]
     const r = el.getBoundingClientRect();
     const stickTop = parseFloat(getComputedStyle(sticky).top) || 0;
     const range = r.height - sticky.offsetHeight;
-    const p = range > 0 ? Math.min(1, Math.max(0, (stickTop - r.top) / range)) : 0;
+    const p =
+      range > 0 ? Math.min(1, Math.max(0, (stickTop - r.top) / range)) : 0;
     let i = 0;
     while (i < input.length - 2 && p > input[i + 1]) i++;
     const [a, b] = [input[i], input[i + 1]];
     const t = b > a ? (p - a) / (b - a) : 0;
-    return Math.round(output[i] + (output[i + 1] - output[i]) * Math.min(1, Math.max(0, t)));
+    return Math.round(
+      output[i] + (output[i + 1] - output[i]) * Math.min(1, Math.max(0, t)),
+    );
   };
 
   useEffect(() => {
@@ -329,7 +471,7 @@ export default function ProjectSwipe({ projects, header }: { projects: Project[]
   };
 
   const stage = (
-    <div className="grid w-full grid-cols-1 items-center gap-6 md:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] md:gap-16">
+    <div className="grid w-full grid-cols-1 items-center gap-10 md:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] md:gap-16">
       {/* Pile */}
       <div className="flex flex-col items-center gap-6">
         <div
@@ -338,7 +480,7 @@ export default function ProjectSwipe({ projects, header }: { projects: Project[]
           aria-label="Projects. Scroll, or use the previous and next buttons or arrow keys, to change project."
           tabIndex={0}
           onKeyDown={onKeyDown}
-          className="relative w-[min(100%,calc((100svh-500px)*1.23))] max-md:[@media(max-height:760px)]:w-[min(100%,calc((100svh-370px)*1.23))] md:w-full max-w-[640px] md:max-w-[min(560px,calc((100svh-200px)*1.23))] aspect-[4/3.25] rounded-[1.6rem] outline-offset-8"
+          className="relative w-full h-[min(372px,calc(100svh-330px))] md:h-auto max-w-[640px] md:max-w-[min(560px,calc((100svh-200px)*1.23))] md:aspect-[4/3.25] rounded-[1.75rem] md:rounded-[1.6rem] outline-offset-8"
         >
           {projects.map((p, i) => (
             <PileCard
@@ -349,7 +491,7 @@ export default function ProjectSwipe({ projects, header }: { projects: Project[]
               total={n}
               command={command}
               reduce={reduce}
-              spread={mobile ? 0.5 : 1}
+              mobile={mobile}
               onThrowStart={() => {
                 busy.current = true;
               }}
@@ -360,44 +502,53 @@ export default function ProjectSwipe({ projects, header }: { projects: Project[]
       </div>
 
       {/* Details of the card on top */}
-      <div className="flex flex-col" aria-live="polite">
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div
-            key={project.url}
-            initial={{ opacity: 0, y: 16, filter: "blur(6px)" }}
-            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-            exit={{ opacity: 0, y: -10, filter: "blur(6px)" }}
-            transition={{ duration: 0.35, ease: EASE }}
-          >
-            <p className="text-sm font-bold tabular-nums text-zinc-500">
-              <span className="text-[#9C99FF]">{pad(top + 1)}</span> / {pad(n)}
-            </p>
-            <h3 className="mt-2 md:mt-3 text-[clamp(1.75rem,3.6vw,3.25rem)] font-extrabold leading-[1.05] tracking-[-0.02em] text-white">
-              {project.name}
-            </h3>
-            <p className="mt-2 text-sm font-medium text-[#9C99FF] md:text-base">{project.category}</p>
-            <p className="mt-4 max-w-[44ch] text-[15px] leading-relaxed text-zinc-400 line-clamp-3 max-md:[@media(max-height:760px)]:hidden md:mt-6 md:line-clamp-none md:text-lg">
-              {project.description}
-            </p>
-            <div className="mt-7 hidden flex-wrap gap-2 md:flex">
-              {project.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="rounded-md border border-white/8 bg-white/3 px-3 py-1.5 text-[11px] font-semibold text-white/55"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          </motion.div>
-        </AnimatePresence>
+      <div
+        className="flex flex-col items-center text-center md:items-start md:text-left"
+        aria-live="polite"
+      >
+        {/* On mobile the name and description live inside the card itself. */}
+        <div className="hidden w-full md:block">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={project.url}
+              initial={{ opacity: 0, y: 16, filter: "blur(6px)" }}
+              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+              exit={{ opacity: 0, y: -10, filter: "blur(6px)" }}
+              transition={{ duration: 0.35, ease: EASE }}
+            >
+              <p className="text-sm font-bold tabular-nums text-zinc-500">
+                <span className="text-[#9C99FF]">{pad(top + 1)}</span> /{" "}
+                {pad(n)}
+              </p>
+              <h3 className="mt-2 md:mt-3 text-[clamp(1.75rem,3.6vw,3.25rem)] font-extrabold leading-[1.05] tracking-[-0.02em] text-white">
+                {project.name}
+              </h3>
+              <p className="mt-2 text-sm font-medium text-[#9C99FF] md:text-base">
+                {project.category}
+              </p>
+              <p className="mx-auto mt-4 max-w-[44ch] md:mx-0 text-[15px] leading-relaxed text-zinc-400 line-clamp-2 max-md:[@media(max-height:760px)]:hidden md:mt-6 md:line-clamp-none md:text-lg">
+                {project.description}
+              </p>
+              <div className="mt-7 hidden flex-wrap gap-2 md:flex">
+                {project.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="rounded-md border border-white/8 bg-white/3 px-3 py-1.5 text-[11px] font-semibold text-white/55"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
 
-        <div className="mt-5 flex items-center gap-2.5 md:mt-10 md:gap-3">
+        <div className="flex items-center justify-center gap-2.5 md:mt-10 md:justify-start md:gap-3">
           <a
             href={project.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="mr-auto md:mr-3 inline-flex h-11 shrink-0 items-center gap-2 rounded-full bg-[#7370FF] px-5 text-sm font-bold md:h-12 md:px-6 text-white shadow-[0_8px_30px_rgba(115,112,255,0.4)] transition-colors duration-200 hover:bg-[#625df5]"
+            className="mr-1.5 md:mr-3 inline-flex h-11 shrink-0 items-center gap-2 rounded-full bg-[#7370FF] px-5 text-sm font-bold md:h-12 md:px-6 text-white shadow-[0_8px_30px_rgba(115,112,255,0.4)] transition-colors duration-200 hover:bg-[#625df5]"
           >
             Visit
             <FiArrowUpRight size={14} />
@@ -426,18 +577,25 @@ export default function ProjectSwipe({ projects, header }: { projects: Project[]
         <div
           ref={stickyRef}
           className={
-            mobile ? "sticky top-0 flex h-[100svh] flex-col justify-center gap-7 pt-20 pb-14" : "sticky"
+            mobile
+              ? "sticky top-0 flex h-[100svh] flex-col justify-center gap-7 pt-24 pb-12"
+              : "sticky"
           }
           style={mobile ? undefined : { top: stickTopPx }}
         >
           {mobile && header}
           {stage}
         </div>
-        {!mobile && <div aria-hidden="true" style={{ height: `${(n - 1) * 70}svh` }} />}
+        {!mobile && (
+          <div aria-hidden="true" style={{ height: `${(n - 1) * 70}svh` }} />
+        )}
       </div>
     </div>
   ) : (
-    <div ref={trackRef} className="flex flex-col gap-10 py-16 md:gap-16 md:py-32">
+    <div
+      ref={trackRef}
+      className="flex flex-col gap-10 py-16 md:gap-16 md:py-32"
+    >
       {header}
       {stage}
     </div>

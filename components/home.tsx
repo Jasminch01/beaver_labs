@@ -229,9 +229,11 @@ export default function Home({ year }: { year: number }) {
     target: spacerRef,
     offset: ["start end", "end end"],
   });
+  // Mobile: the section isn't pinned and the spacer is hidden, so track the section itself.
+  // Each line fills as it scrolls up through the middle of the screen.
   const { scrollYProgress: mobileProgress } = useScroll({
-    target: spacerRef,
-    offset: ["start 65%", "end 20%"],
+    target: whyRef,
+    offset: ["start 75%", "end 45%"],
   });
 
   const reduce = useReducedMotion() ?? false;
@@ -275,7 +277,7 @@ export default function Home({ year }: { year: number }) {
               variants={fadeUp(0)}
               initial="hidden"
               animate="visible"
-              className="flex items-center gap-3 mb-8"
+              className="flex items-center gap-3 mb-6 md:mb-8"
             >
               <span className="w-2 h-2 rounded-full bg-[#7370FF] animate-pulse" />
               <span className="text-[11px] font-bold tracking-[0.22em] uppercase text-[#7370FF]">
@@ -329,7 +331,7 @@ export default function Home({ year }: { year: number }) {
               </a>
             </motion.div>
 
-            <motion.div variants={fadeUp(0.4)} initial="hidden" animate="visible" className="flex flex-wrap gap-2 md:gap-3">
+            <motion.div variants={fadeUp(0.4)} initial="hidden" animate="visible" className="flex flex-wrap gap-1.5 min-[385px]:gap-2 md:gap-3">
               {[
                 { num: "100+", label: "Projects" },
                 { num: "30K+", label: "Users" },
@@ -337,7 +339,7 @@ export default function Home({ year }: { year: number }) {
               ].map((stat) => (
                 <div
                   key={stat.label}
-                  className="flex items-baseline gap-1 md:gap-1.5 bg-white/6 border border-white/10 rounded-full px-3 md:px-4 py-2"
+                  className="flex items-baseline gap-1 md:gap-1.5 bg-white/6 border border-white/10 rounded-full px-2.5 min-[385px]:px-3 md:px-4 py-2"
                 >
                   <span className="text-white font-bold text-[15px] md:text-base">{stat.num}</span>
                   <span className="text-zinc-400 text-xs font-medium">{stat.label}</span>
@@ -346,26 +348,43 @@ export default function Home({ year }: { year: number }) {
             </motion.div>
           </div>
 
-          {/* Hero visual: modular blocks (replaces the Spline robot) */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 1.2, delay: 0.3, ease: EASE }}
-            className="absolute inset-0 md:relative md:inset-auto h-[100svh] md:h-[580px] w-full z-0 md:z-auto pointer-events-none md:pointer-events-auto flex items-center justify-center overflow-hidden md:overflow-visible"
-          >
-            <div className="w-full h-full opacity-25 md:opacity-100 scale-150 md:scale-100 transition-opacity duration-1000 mt-20 md:mt-0 relative">
-              <Spotlight size={550} className="hidden md:block" />
-              <BlockStack className="relative z-[2]" />
-              <div className="absolute inset-0 bg-zinc-950/50 md:hidden pointer-events-none z-10" />
-            </div>
-          </motion.div>
+          {/* Mobile: the block structure fills the hero background (as on the original site),
+              sized to fit the screen so the whole structure is visible. */}
+          {isMobile && (
+            <motion.div
+              aria-hidden="true"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 1.2, delay: 0.3, ease: EASE }}
+              className="pointer-events-none absolute inset-0 z-0 flex h-[100svh] w-full items-center justify-center overflow-hidden"
+            >
+              <div className="relative mt-24 h-[min(420px,52svh)] w-[min(78%,340px)] opacity-30">
+                <BlockStack />
+              </div>
+            </motion.div>
+          )}
+
+          {/* Hero visual: modular blocks (replaces the Spline robot). Desktop only. */}
+          {!isMobile && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 1.2, delay: 0.3, ease: EASE }}
+              className="hidden md:flex relative h-[580px] w-full items-center justify-center"
+            >
+              <div className="w-full h-full relative">
+                <Spotlight size={550} />
+                <BlockStack className="relative z-[2]" />
+              </div>
+            </motion.div>
+          )}
         </div>
 
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.2, duration: 0.8 }}
-          className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
+          className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 max-md:[@media(max-height:760px)]:hidden"
         >
           <motion.div animate={{ y: [0, 6, 0] }} transition={{ repeat: Infinity, duration: 1.6, ease: "easeInOut" }}>
             <FiArrowDown size={16} className="text-zinc-500" />
@@ -391,11 +410,7 @@ export default function Home({ year }: { year: number }) {
               return (
                 <div key={i} className="py-4 md:py-9 border-b border-white/8 last:border-0 cursor-default">
                   <span className="text-[1.15rem] md:text-[clamp(1.5rem,4vw,3.2rem)] font-bold leading-snug md:leading-tight tracking-[-0.01em] text-pretty">
-                    {isMobile ? (
-                      <span className="text-white/85 whitespace-pre-wrap">{text}</span>
-                    ) : (
-                      <FillText text={text} progress={progress} start={start} end={start + 0.25} />
-                    )}
+                    <FillText text={text} progress={progress} start={start} end={start + 0.25} />
                   </span>
                 </div>
               );
@@ -469,7 +484,8 @@ export default function Home({ year }: { year: number }) {
               header={
                 <div className="flex flex-col items-center text-center relative z-10">
                   <h2 className="text-[2.25rem] md:text-[clamp(2.5rem,6vw,4.5rem)] font-extrabold text-white tracking-[-0.02em] leading-tight mb-2 md:mb-5 text-balance">
-                    Work We&apos;ve <span className="text-[#7370FF]">Shipped</span>
+                    Work We&apos;ve <br className="md:hidden" />
+                    <span className="text-[#7370FF]">Shipped</span>
                   </h2>
                   <p className="text-zinc-400 text-[15px] md:text-xl max-w-2xl text-balance max-md:[@media(max-height:760px)]:hidden">
                     A few of the products we&apos;ve designed, engineered, and launched.
