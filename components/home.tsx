@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties } from "re
 import {
   motion,
   useMotionValue,
+  useReducedMotion,
   useScroll,
   useSpring,
   useTransform,
@@ -12,6 +13,7 @@ import {
 import BlockStack from "./block-stack";
 import { FiArrowDown, FiArrowUpRight, FiMail } from "./icons";
 import ProjectSwipe from "./project-swipe";
+import { ServiceCardBody, ServiceStack, serviceCardClass, type Service } from "./service-stack";
 import { PROJECTS } from "./projects";
 import { scrollToId } from "./smooth-scroll";
 
@@ -133,7 +135,7 @@ function FillText({
 
 /* ---------- Services ---------- */
 
-const SERVICES = [
+const SERVICES: Service[] = [
   {
     number: "01",
     title: "Web Applications & MVPs",
@@ -232,6 +234,7 @@ export default function Home({ year }: { year: number }) {
     offset: ["start 65%", "end 20%"],
   });
 
+  const reduce = useReducedMotion() ?? false;
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -241,6 +244,17 @@ export default function Home({ year }: { year: number }) {
   }, []);
 
   const progress = isMobile ? mobileProgress : desktopProgress;
+
+  const servicesHeader = (
+    <div className="flex flex-col items-center text-center relative z-10">
+      <h2 className="text-[2.25rem] md:text-[clamp(2.5rem,6vw,4.5rem)] font-extrabold text-white tracking-[-0.02em] leading-tight mb-2 md:mb-5 text-balance">
+        What We <span className="text-[#7370FF]">Build</span>
+      </h2>
+      <p className="text-zinc-400 text-[15px] md:text-xl max-w-2xl text-balance">
+        End-to-end capabilities across product, AI, and infrastructure.
+      </p>
+    </div>
+  );
 
   const stickTop = (h: number, fallback = "0px") =>
     h > 0 ? `min(0px, calc(100svh - ${h}px))` : fallback;
@@ -315,7 +329,7 @@ export default function Home({ year }: { year: number }) {
               </a>
             </motion.div>
 
-            <motion.div variants={fadeUp(0.4)} initial="hidden" animate="visible" className="flex flex-wrap gap-3">
+            <motion.div variants={fadeUp(0.4)} initial="hidden" animate="visible" className="flex flex-wrap gap-2 md:gap-3">
               {[
                 { num: "100+", label: "Projects" },
                 { num: "30K+", label: "Users" },
@@ -323,10 +337,10 @@ export default function Home({ year }: { year: number }) {
               ].map((stat) => (
                 <div
                   key={stat.label}
-                  className="flex items-baseline gap-1.5 bg-white/6 border border-white/10 rounded-full px-4 py-2"
+                  className="flex items-baseline gap-1 md:gap-1.5 bg-white/6 border border-white/10 rounded-full px-3 md:px-4 py-2"
                 >
-                  <span className="text-white font-bold text-base">{stat.num}</span>
-                  <span className="text-zinc-500 text-xs font-medium">{stat.label}</span>
+                  <span className="text-white font-bold text-[15px] md:text-base">{stat.num}</span>
+                  <span className="text-zinc-400 text-xs font-medium">{stat.label}</span>
                 </div>
               ))}
             </motion.div>
@@ -367,19 +381,16 @@ export default function Home({ year }: { year: number }) {
         style={{ "--dynamic-top": stickTop(whyH) } as CSSProperties}
       >
         <div className="hidden md:block absolute top-1/2 left-1/3 w-[600px] h-[400px] bg-[#7370FF]/10 blur-[150px] rounded-full pointer-events-none -translate-y-1/2" />
-        <div className="max-w-7xl w-full mx-auto px-6 md:px-10 xl:px-0 py-24">
-          <div className="mb-16">
+        <div className="max-w-7xl w-full mx-auto px-6 md:px-10 xl:px-0 py-16 md:py-24">
+          <div className="mb-6 md:mb-16">
             <h2 className="text-[#7370FF] text-[11px] font-bold tracking-[0.22em] uppercase">Why on demand</h2>
           </div>
           <div>
             {WHY.map((text, i) => {
               const start = 0.25 * i;
               return (
-                <div key={i} className="py-5 md:py-9 border-b border-white/6 last:border-0 group cursor-default">
-                  <span className="text-[11px] font-bold text-white/15 tabular-nums mr-6 select-none">
-                    {String(i + 1).padStart(2, "0")}
-                  </span>
-                  <span className="text-[clamp(1.5rem,4vw,3.2rem)] font-bold leading-tight tracking-[-0.01em]">
+                <div key={i} className="py-4 md:py-9 border-b border-white/8 last:border-0 cursor-default">
+                  <span className="text-[1.15rem] md:text-[clamp(1.5rem,4vw,3.2rem)] font-bold leading-snug md:leading-tight tracking-[-0.01em] text-pretty">
                     {isMobile ? (
                       <span className="text-white/85 whitespace-pre-wrap">{text}</span>
                     ) : (
@@ -399,89 +410,47 @@ export default function Home({ year }: { year: number }) {
       <section
         id="services"
         ref={servicesRef}
-        className="relative md:sticky z-20 bg-[#0a0a0f] rounded-t-[2.5rem] overflow-hidden shadow-[0_-8px_40px_rgba(0,0,0,0.4)] md:top-[var(--services-top)]"
+        className="relative md:sticky z-20 bg-[#0a0a0f] rounded-t-[2.5rem] overflow-clip shadow-[0_-8px_40px_rgba(0,0,0,0.4)] md:top-[var(--services-top)]"
         style={{ "--services-top": stickTop(servicesH, "min(0px, calc(100svh - 100%))") } as CSSProperties}
       >
         <div className="hidden md:block absolute top-0 right-1/4 w-[500px] h-[300px] bg-[#7370FF]/6 blur-[130px] rounded-full pointer-events-none" />
-        <div className="max-w-7xl w-full mx-auto px-6 md:px-10 xl:px-0 py-20 md:py-32">
-          <motion.div
-            initial={isMobile ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: isMobile ? 0 : 0.7 }}
-            className="flex flex-col items-center text-center mb-16 md:mb-24 relative z-10"
-          >
-            <h2 className="text-[clamp(2.5rem,6vw,4.5rem)] font-extrabold text-white tracking-[-0.02em] leading-tight mb-5">
-              What We <span className="text-[#7370FF]">Build</span>
-            </h2>
-            <p className="text-zinc-400 text-lg md:text-xl max-w-2xl">
-              End-to-end capabilities across product, AI, and infrastructure.
-            </p>
-          </motion.div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 relative z-10">
-            {SERVICES.map((s, i) => (
+        <div className="max-w-7xl w-full mx-auto px-5 md:px-10 xl:px-0">
+          {isMobile && !reduce ? (
+            <ServiceStack services={SERVICES} header={servicesHeader} />
+          ) : (
+            <div className="py-16 md:py-32">
               <motion.div
-                key={s.number}
                 initial={isMobile ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: isMobile ? "50px" : "-40px" }}
-                transition={{ duration: isMobile ? 0 : 0.6, delay: isMobile ? 0 : 0.08 * i }}
-                className={cn(
-                  "group relative flex flex-col p-8 md:p-10 rounded-[2rem] border transition-[transform,border-color,background-color,box-shadow] duration-300 md:hover:-translate-y-1 overflow-hidden min-h-[360px] cursor-default",
-                  s.highlight
-                    ? "bg-linear-to-b from-[#7370FF]/8 to-zinc-950/50 border-[#7370FF]/25 hover:border-[#7370FF]/50 hover:shadow-[0_8px_32px_rgba(115,112,255,0.15)]"
-                    : "bg-white/2 border-white/6 hover:bg-white/4 hover:border-white/10",
-                  s.className,
-                )}
+                viewport={{ once: true }}
+                transition={{ duration: isMobile ? 0 : 0.7 }}
+                className="mb-10 md:mb-24"
               >
-                {s.highlight && (
-                  <div className="hidden md:block absolute top-0 right-0 w-64 h-64 bg-[#7370FF]/10 blur-[80px] rounded-full mix-blend-screen pointer-events-none transition-opacity duration-500 group-hover:opacity-100 opacity-60" />
-                )}
-                <div className="flex justify-between items-start mb-10 relative z-10">
-                  <span
-                    className={cn(
-                      "text-[2.5rem] md:text-[3.2rem] font-black leading-none tracking-tighter select-none transition-colors duration-500",
-                      s.highlight
-                        ? "text-[#7370FF]/40 group-hover:text-[#7370FF]/60"
-                        : "text-white/10 group-hover:text-white/20",
-                    )}
-                  >
-                    {s.number}
-                  </span>
-                  <div
-                    className={cn(
-                      "w-10 h-10 rounded-full border flex items-center justify-center transition-all duration-400",
-                      s.highlight
-                        ? "border-[#7370FF]/30 text-[#7370FF] group-hover:bg-[#7370FF]/10"
-                        : "border-white/10 text-white/30 group-hover:border-white/20 group-hover:text-white/70",
-                    )}
-                  >
-                    <FiArrowUpRight size={18} className="group-hover:rotate-45 transition-transform duration-400" />
-                  </div>
-                </div>
-                <div className="relative z-10 flex-1 flex flex-col">
-                  <h3 className="text-xl md:text-2xl font-bold text-white mb-3 tracking-[-0.01em]">{s.title}</h3>
-                  <p className="text-zinc-400 text-[14px] md:text-[15px] leading-relaxed mb-8">{s.description}</p>
-                  <div className="mt-auto flex flex-wrap gap-2 pt-4">
-                    {s.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className={cn(
-                          "text-[11px] font-semibold px-3 py-1.5 rounded-md border transition-colors duration-400",
-                          s.highlight
-                            ? "bg-[#7370FF]/10 border-[#7370FF]/25 text-[#7370FF]/90 group-hover:border-[#7370FF]/40"
-                            : "bg-white/3 border-white/6 text-white/50 group-hover:border-white/12 group-hover:text-white/70",
-                        )}
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
+                {servicesHeader}
               </motion.div>
-            ))}
-          </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 md:gap-5 relative z-10">
+                {SERVICES.map((s, i) => (
+                  <motion.div
+                    key={s.number}
+                    initial={isMobile ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, margin: isMobile ? "50px" : "-40px" }}
+                    transition={{ duration: isMobile ? 0 : 0.6, delay: isMobile ? 0 : 0.08 * i }}
+                    className={cn(
+                      serviceCardClass(s),
+                      "relative md:min-h-[340px] cursor-default transition-[transform,border-color,background-color,box-shadow] duration-300 md:hover:-translate-y-1",
+                      s.highlight
+                        ? "hover:border-[#7370FF]/55 hover:shadow-[0_12px_32px_-8px_rgba(115,112,255,0.25)]"
+                        : "hover:border-white/16 hover:bg-[#13131b]",
+                      s.className,
+                    )}
+                  >
+                    <ServiceCardBody s={s} />
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
@@ -493,24 +462,21 @@ export default function Home({ year }: { year: number }) {
         style={{ "--work-top": stickTop(workH, "min(0px, calc(100svh - 100%))") } as CSSProperties}
       >
         <div className="hidden md:block absolute top-0 left-1/4 w-[500px] h-[300px] bg-[#7370FF]/8 blur-[130px] rounded-full pointer-events-none" />
-        <div className="max-w-7xl w-full mx-auto px-6 md:px-10 xl:px-0 py-20 md:py-32">
-          <motion.div
-            initial={isMobile ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: isMobile ? 0 : 0.7 }}
-            className="flex flex-col items-center text-center mb-16 md:mb-24 relative z-10"
-          >
-            <h2 className="text-[clamp(2.5rem,6vw,4.5rem)] font-extrabold text-white tracking-[-0.02em] leading-tight mb-5">
-              Work We&apos;ve <span className="text-[#7370FF]">Shipped</span>
-            </h2>
-            <p className="text-zinc-400 text-lg md:text-xl max-w-2xl">
-              A few of the products we&apos;ve designed, engineered, and launched.
-            </p>
-          </motion.div>
-
+        <div className="max-w-7xl w-full mx-auto px-5 md:px-10 xl:px-0">
           <div className="relative z-10">
-            <ProjectSwipe projects={PROJECTS} />
+            <ProjectSwipe
+              projects={PROJECTS}
+              header={
+                <div className="flex flex-col items-center text-center relative z-10">
+                  <h2 className="text-[2.25rem] md:text-[clamp(2.5rem,6vw,4.5rem)] font-extrabold text-white tracking-[-0.02em] leading-tight mb-2 md:mb-5 text-balance">
+                    Work We&apos;ve <span className="text-[#7370FF]">Shipped</span>
+                  </h2>
+                  <p className="text-zinc-400 text-[15px] md:text-xl max-w-2xl text-balance max-md:[@media(max-height:760px)]:hidden">
+                    A few of the products we&apos;ve designed, engineered, and launched.
+                  </p>
+                </div>
+              }
+            />
           </div>
         </div>
       </section>
@@ -551,7 +517,7 @@ export default function Home({ year }: { year: number }) {
               href="mailto:hello@beaverlabs.com"
               whileHover={{ scale: 1.04 }}
               whileTap={{ scale: 0.97 }}
-              className="inline-flex items-center gap-3 px-8 py-4 rounded-full bg-[#7370FF] text-white font-bold text-base hover:bg-[#625df5] transition-colors duration-200 shadow-[0_0_40px_rgba(115,112,255,0.5)] hover:shadow-[0_0_60px_rgba(115,112,255,0.7)]"
+              className="inline-flex items-center gap-2.5 md:gap-3 px-6 py-3.5 md:px-8 md:py-4 rounded-full bg-[#7370FF] text-white font-bold text-[15px] md:text-base hover:bg-[#625df5] transition-colors duration-200 shadow-[0_0_40px_rgba(115,112,255,0.5)] hover:shadow-[0_0_60px_rgba(115,112,255,0.7)]"
             >
               <FiMail size={16} />
               hello@beaverlabs.com

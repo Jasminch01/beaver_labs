@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import Image from "next/image";
 import {
   AnimatePresence,
@@ -64,6 +64,7 @@ function PileCard({
   total,
   command,
   reduce,
+  spread,
   onThrowStart,
   onThrown,
 }: {
@@ -73,6 +74,7 @@ function PileCard({
   total: number;
   command: Command | null;
   reduce: boolean;
+  spread: number;
   onThrowStart: () => void;
   onThrown: (dir: 1 | -1) => void;
 }) {
@@ -112,8 +114,8 @@ function PileCard({
   const pose = isTop
     ? { rotate: 0, x: 0, y: 0, scale: 1 }
     : {
-        rotate: TILTS[index % TILTS.length],
-        x: side * (16 + depth * 12),
+        rotate: TILTS[index % TILTS.length] * spread,
+        x: side * (16 + depth * 12) * spread,
         y: depth * 10,
         scale: 1 - depth * 0.05,
       };
@@ -169,7 +171,7 @@ function NavButton({ dir, label, onClick }: { dir: 1 | -1; label: string; onClic
       type="button"
       onClick={onClick}
       aria-label={label}
-      className="flex h-11 w-11 items-center justify-center rounded-full border border-white/12 bg-white/5 text-zinc-300 transition-colors duration-200 hover:border-white/25 hover:bg-white/12 hover:text-white active:scale-95"
+      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border md:h-12 md:w-12 border-white/12 bg-white/5 text-zinc-300 transition-colors duration-200 hover:border-white/25 hover:bg-white/12 hover:text-white active:scale-95"
     >
       <svg
         width="18"
@@ -192,7 +194,7 @@ function NavButton({ dir, label, onClick }: { dir: 1 | -1; label: string; onClic
 
 /* ---------- Public component ---------- */
 
-export default function ProjectSwipe({ projects }: { projects: Project[] }) {
+export default function ProjectSwipe({ projects, header }: { projects: Project[]; header?: ReactNode }) {
   const reduce = useReducedMotion() ?? false;
   const n = projects.length;
   const [order, setOrder] = useState(() => projects.map((_, i) => i));
@@ -209,6 +211,30 @@ export default function ProjectSwipe({ projects }: { projects: Project[] }) {
   }, [order]);
 
   const scrollMode = !reduce;
+  const [mobile, setMobile] = useState(false);
+
+  // Desktop: pin the cards vertically centred (a little below centre to clear the navbar).
+  useEffect(() => {
+    const el = stickyRef.current;
+    if (!el || mobile || !scrollMode) return;
+    const update = () =>
+      setStickTopPx(Math.max(112, Math.round((window.innerHeight - el.offsetHeight) / 2 + 32)));
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    window.addEventListener("resize", update);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", update);
+    };
+  }, [mobile, scrollMode]);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const update = () => setMobile(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
 
   const rotate = (o: number[], dir: 1 | -1) =>
     dir === 1 ? [...o.slice(1), o[0]] : [o[o.length - 1], ...o.slice(0, -1)];
@@ -253,6 +279,8 @@ export default function ProjectSwipe({ projects }: { projects: Project[] }) {
   // Scroll-driven swapping (desktop): each step of the pinned scroll = one card.
   const trackRef = useRef<HTMLDivElement>(null);
   const { input, output } = keyframes(n);
+  const stickyRef = useRef<HTMLDivElement>(null);
+  const [stickTopPx, setStickTopPx] = useState(112);
   const { scrollYProgress } = useScroll({ target: trackRef, offset: ["start start", "end end"] });
   const scrollStep = useTransform(scrollYProgress, input, output);
   const lastStep = useRef(0);
@@ -262,10 +290,12 @@ export default function ProjectSwipe({ projects }: { projects: Project[] }) {
   // reports the end of the range, which would otherwise fake a jump of n cards.
   const currentStep = () => {
     const el = trackRef.current;
-    if (!el) return 0;
+    const sticky = stickyRef.current;
+    if (!el || !sticky) return 0;
     const r = el.getBoundingClientRect();
-    const range = r.height - window.innerHeight;
-    const p = range > 0 ? Math.min(1, Math.max(0, -r.top / range)) : 0;
+    const stickTop = parseFloat(getComputedStyle(sticky).top) || 0;
+    const range = r.height - sticky.offsetHeight;
+    const p = range > 0 ? Math.min(1, Math.max(0, (stickTop - r.top) / range)) : 0;
     let i = 0;
     while (i < input.length - 2 && p > input[i + 1]) i++;
     const [a, b] = [input[i], input[i + 1]];
@@ -299,7 +329,7 @@ export default function ProjectSwipe({ projects }: { projects: Project[] }) {
   };
 
   const stage = (
-    <div className="grid w-full grid-cols-1 items-center gap-7 md:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] md:gap-16">
+    <div className="grid w-full grid-cols-1 items-center gap-6 md:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] md:gap-16">
       {/* Pile */}
       <div className="flex flex-col items-center gap-6">
         <div
@@ -308,7 +338,7 @@ export default function ProjectSwipe({ projects }: { projects: Project[] }) {
           aria-label="Projects. Scroll, or use the previous and next buttons or arrow keys, to change project."
           tabIndex={0}
           onKeyDown={onKeyDown}
-          className="relative w-[min(86%,calc((100svh-480px)*1.23))] md:w-full max-w-[640px] md:max-w-[min(640px,calc((100svh-300px)*1.23))] aspect-[4/3.25] rounded-[1.6rem] outline-offset-8"
+          className="relative w-[min(100%,calc((100svh-500px)*1.23))] max-md:[@media(max-height:760px)]:w-[min(100%,calc((100svh-370px)*1.23))] md:w-full max-w-[640px] md:max-w-[min(560px,calc((100svh-200px)*1.23))] aspect-[4/3.25] rounded-[1.6rem] outline-offset-8"
         >
           {projects.map((p, i) => (
             <PileCard
@@ -319,6 +349,7 @@ export default function ProjectSwipe({ projects }: { projects: Project[] }) {
               total={n}
               command={command}
               reduce={reduce}
+              spread={mobile ? 0.5 : 1}
               onThrowStart={() => {
                 busy.current = true;
               }}
@@ -345,7 +376,7 @@ export default function ProjectSwipe({ projects }: { projects: Project[] }) {
               {project.name}
             </h3>
             <p className="mt-2 text-sm font-medium text-[#9C99FF] md:text-base">{project.category}</p>
-            <p className="mt-4 max-w-[44ch] text-[15px] leading-relaxed text-zinc-400 line-clamp-3 md:mt-6 md:line-clamp-none md:text-lg">
+            <p className="mt-4 max-w-[44ch] text-[15px] leading-relaxed text-zinc-400 line-clamp-3 max-md:[@media(max-height:760px)]:hidden md:mt-6 md:line-clamp-none md:text-lg">
               {project.description}
             </p>
             <div className="mt-7 hidden flex-wrap gap-2 md:flex">
@@ -361,14 +392,14 @@ export default function ProjectSwipe({ projects }: { projects: Project[] }) {
           </motion.div>
         </AnimatePresence>
 
-        <div className="mt-6 flex flex-wrap items-center gap-3 md:mt-10">
+        <div className="mt-5 flex items-center gap-2.5 md:mt-10 md:gap-3">
           <a
             href={project.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="mr-3 inline-flex items-center gap-2.5 rounded-full bg-[#7370FF] px-6 py-3.5 text-sm font-bold text-white shadow-[0_8px_30px_rgba(115,112,255,0.4)] transition-colors duration-200 hover:bg-[#625df5]"
+            className="mr-auto md:mr-3 inline-flex h-11 shrink-0 items-center gap-2 rounded-full bg-[#7370FF] px-5 text-sm font-bold md:h-12 md:px-6 text-white shadow-[0_8px_30px_rgba(115,112,255,0.4)] transition-colors duration-200 hover:bg-[#625df5]"
           >
-            Visit {hostOf(project.url)}
+            Visit
             <FiArrowUpRight size={14} />
             <span className="sr-only">(opens in a new tab)</span>
           </a>
@@ -379,11 +410,36 @@ export default function ProjectSwipe({ projects }: { projects: Project[] }) {
     </div>
   );
 
+  // Mobile: heading and cards pin together in one screen, 28px apart (same as
+  // the "What We Build" stack). Desktop: same rhythm as "What We Build" —
+  // 128px top padding, heading, 96px gap — then only the cards pin, just
+  // below the navbar, while the heading scrolls away.
   return scrollMode ? (
-    <div ref={trackRef} className="relative" style={{ height: `${100 + (n - 1) * 70}svh` }}>
-      <div className="sticky top-0 flex h-[100svh] items-center pt-20 pb-6 md:pt-20">{stage}</div>
+    <div className={mobile ? "" : "pt-32 pb-32"}>
+      {!mobile && <div className="mb-24">{header}</div>}
+      {/* The track element stays the same across layouts so the scroll tracker stays attached. */}
+      <div
+        ref={trackRef}
+        className="relative"
+        style={mobile ? { height: `${100 + (n - 1) * 70}svh` } : undefined}
+      >
+        <div
+          ref={stickyRef}
+          className={
+            mobile ? "sticky top-0 flex h-[100svh] flex-col justify-center gap-7 pt-20 pb-14" : "sticky"
+          }
+          style={mobile ? undefined : { top: stickTopPx }}
+        >
+          {mobile && header}
+          {stage}
+        </div>
+        {!mobile && <div aria-hidden="true" style={{ height: `${(n - 1) * 70}svh` }} />}
+      </div>
     </div>
   ) : (
-    <div ref={trackRef}>{stage}</div>
+    <div ref={trackRef} className="flex flex-col gap-10 py-16 md:gap-16 md:py-32">
+      {header}
+      {stage}
+    </div>
   );
 }
